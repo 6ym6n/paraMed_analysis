@@ -1,0 +1,8 @@
+{
+  "sites": {
+    "parapharma": {
+      "url": "https://parapharma.ma",
+      "enabled": true
+    }
+  }
+}
