@@ -89,7 +89,7 @@ def scrape_category(name, url):
     print(f"✅ {total_scraped} produits récupérés pour '{name}'\n")
 
 if __name__ == "__main__":
-    with open("data/main_categories.json", encoding="utf-8") as f:
+    with open("../data/main_categories.json", encoding="utf-8") as f:
         categories = json.load(f)
 
     for cat in categories:
