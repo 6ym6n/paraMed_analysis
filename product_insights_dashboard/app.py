@@ -1,32 +1,56 @@
 import streamlit as st
-from analysis.indicators import load_data, get_summary_stats
-from components.charts import price_comparison_chart, price_gap_bar_chart
+from pymongo import MongoClient
+import pandas as pd
 
-st.set_page_config(page_title="Product Price Intelligence", layout="wide")
+# 🔗 Connexion MongoDB
+client = MongoClient("mongodb://localhost:27017")
+db = client["paraMedProducts"]
+collection = db["product_match80"]
 
-st.title("📊 Dashboard Comparatif : Parapharma vs Univers")
+# 📥 Charger les données
+data = list(collection.find({}))
+df = pd.DataFrame(data)
 
-# --- Load data ---
-df = load_data()
+# 🧹 Nettoyage
+df = df.drop(columns=["_id"], errors="ignore")
 
-# --- KPI Summary ---
-st.subheader("Vue d'ensemble")
-stats = get_summary_stats(df)
+# 📋 Liste des pharmacies à détecter dynamiquement
+sites = ['parapharma', 'novapara', 'universparadiscount', 'mapara']
 
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Produits totaux", stats['total_products'])
-col2.metric("Prix moyen Parapharma", f"{stats['avg_price_sr']:.2f} MAD")
-col3.metric("Prix moyen Univers", f"{stats['avg_price_univers']:.2f} MAD")
-col4.metric("Produits en commun", stats['common_products'])
+# ➕ Ajouter nombre de sites disponibles
+def count_sites(row):
+    return sum([1 for site in sites if site in row and isinstance(row[site], dict) and 'ma_prix' in row[site]])
 
-st.divider()
+df["nb_sites"] = df.apply(count_sites, axis=1)
 
-# --- Price gap visual ---
-st.subheader("💸 Produits avec les plus grands écarts de prix")
-st.plotly_chart(price_gap_bar_chart(df), use_container_width=True)
+# 🎛️ Filtre Streamlit
+st.sidebar.title("🔎 Filtres")
+nb_filter = st.sidebar.selectbox(
+    "Afficher les produits disponibles sur combien de sites ?",
+    sorted(df["nb_sites"].unique()),
+    index=0
+)
 
-st.divider()
+# 🔍 Filtrer la DataFrame
+filtered_df = df[df["nb_sites"] == nb_filter]
 
-# --- Price comparison table ---
-st.subheader("🆚 Comparateur de prix par produit")
-st.dataframe(price_comparison_chart(df), use_container_width=True)
+# 🧾 Interface
+st.title("💊 Comparateur de prix – Produits Parapharmaceutiques")
+st.write(f"{len(filtered_df)} produits trouvés sur {nb_filter} site(s)")
+
+for _, row in filtered_df.iterrows():
+    st.markdown(f"### 🧴 {row['nom_produit']}")
+    table_rows = []
+
+    for site in sites:
+        if site in row and isinstance(row[site], dict):
+            prix = row[site].get("ma_prix", None)
+            name = row[site].get("ma_name", "")
+            url = row[site].get("ma_url", "")
+
+            if prix is not None:
+                lien = f"[{name}]({url})" if url else name
+                table_rows.append((site, f"{prix} DH", lien))
+
+    st.table(pd.DataFrame(table_rows, columns=["Site", "Prix", "Nom / Lien produit"]))
+    st.markdown("---")
