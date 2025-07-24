@@ -1,5 +1,0 @@
-# Requirements pour le projet parapharma_scraper
-requests
-beautifulsoup4
-pymongo
-
