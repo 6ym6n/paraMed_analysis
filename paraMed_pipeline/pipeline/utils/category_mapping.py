@@ -1,4 +1,15 @@
-# post_scraping/scripts/category_mapping.py
+"""
+Mapping of raw categories to higher‑level categories.
+
+This dictionary maps substrings of scraped category labels to a
+canonical set of high‑level categories used for analysis and matching.
+If a key appears in the scraped category string (case‑insensitive and
+accent‑insensitive), the value is returned as the new category.  The
+order of keys does not matter because the mapping is searched
+sequentially for any occurrence.
+
+Extend this mapping as new categories emerge.
+"""
 
 category_mapping = {
     # ✅ Visage
@@ -17,7 +28,7 @@ category_mapping = {
     "soins anti imperfections": "Visage",
     "soins hydratants": "Visage",
     "soins eclat et anti taches": "Visage",
-    
+
     # ✅ Corps
     "corps": "Corps",
     "soins corps": "Corps",
@@ -38,7 +49,7 @@ category_mapping = {
     "gels coiffants": "Cheveux",
     "sprays volume cheveux": "Cheveux",
     "soins des cheveux": "Cheveux",
-    
+
     # ✅ Solaire
     "solaire": "Solaire",
     "cremes solaires": "Solaire",
@@ -59,7 +70,7 @@ category_mapping = {
     "huiles et cremes minceur": "Hygiène",
     "gels et huiles lavants": "Hygiène",
     "lingettes": "Hygiène",
-    
+
     # ✅ Hygiène intime
     "toilette intime": "Hygiène intime",
     "protections hygieniques et toilette intime": "Hygiène intime",
@@ -147,10 +158,6 @@ category_mapping = {
     # 🟡 Par défaut
     "accueil": "Autres",
     "produits du monde": "Autres",
-    "produits espagnols": "Autres",
-    "produits americains": "Autres",
-    "produits coreens": "Autres",
-    "produits americains visage et corps": "Autres",
-    "produits americains cheveux": "Autres",
-    "produits alimentaires bio": "Produits Bio"
 }
+
+__all__ = ["category_mapping"]
