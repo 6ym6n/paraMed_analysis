@@ -14,7 +14,7 @@ from datetime import datetime
 from typing import Optional, Tuple
 
 from .category_mapping import category_mapping
-from ..config import KNOWN_BRANDS, BRAND_BLACKLIST
+from ...config import KNOWN_BRANDS, BRAND_BLACKLIST
 
 __all__ = [
     "clean_name",

@@ -26,19 +26,24 @@ from .matcher import match_products
 from .utils.db import get_collection
 
 
-def run_pipeline(*, max_pages: Optional[int] = None) -> None:
+def run_pipeline(
+    *,
+    max_pages_parapharma: Optional[int] = 156,
+    max_pages_univers: Optional[int] = 1
+) -> None:
     """Execute the full scraping, transformation and matching pipeline.
 
     Parameters
     ----------
-    max_pages : int, optional
-        Optional page limit for scraping.  Useful for testing; leave
-        ``None`` to scrape until pagination ends.
+    max_pages_parapharma : int, optional
+        Page limit for Parapharma scraper.
+    max_pages_univers : int, optional
+        Page limit for Univers scraper.
     """
     print("🚀 Starting scraping...")
     # Step 1: scrape raw data
-    parapharma_raw = scrape_parapharma(PARAPHARMA_CATEGORIES, max_pages=max_pages)
-    univers_raw = scrape_univers(UNIVERS_CATEGORIES, max_pages=max_pages)
+    parapharma_raw = scrape_parapharma(PARAPHARMA_CATEGORIES, max_pages=max_pages_parapharma)
+    univers_raw = scrape_univers(UNIVERS_CATEGORIES, max_pages=max_pages_univers)
     print(f"✅ Scraped {len(parapharma_raw)} Parapharma products and {len(univers_raw)} Univers products")
     # Step 2: clean and merge
     print("🧹 Cleaning and merging data...")
@@ -47,7 +52,6 @@ def run_pipeline(*, max_pages: Optional[int] = None) -> None:
     # Persist cleaned data
     merged_col = get_collection("para_univer_merged")
     if cleaned:
-        # Replace entire collection
         merged_col.delete_many({})
         merged_col.insert_many(cleaned)
         print(f"💾 Saved cleaned products to para_univer_merged")
@@ -66,7 +70,6 @@ def run_pipeline(*, max_pages: Optional[int] = None) -> None:
         print(f"💾 Saved matches to matches collection")
     else:
         print("⚠️ No matches found to save")
-
 
 if __name__ == "__main__":
     run_pipeline()
