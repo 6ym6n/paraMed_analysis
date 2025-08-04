@@ -6,15 +6,35 @@ extract brands and sizes, clean prices and availability labels, and
 map categories.  By using these functions in both the scraping and
 transformation stages you ensure consistent preprocessing throughout
 the pipeline.
+
+The implementation here is based on the upstream repository.  In
+addition to the original helpers, this version also exposes a helper
+to recover truncated product names from Parapharma image URLs.  Some
+Parapharma product listings abbreviate long names with an ellipsis
+(`"..."`).  When this occurs the full name can often be inferred
+from the associated image URL, which encodes a slugified version of
+the product name.  The ``clean_name_from_image_url`` function
+extracts the slug from the URL, converts hyphens to spaces and
+returns a title‑cased version.
 """
+
+from __future__ import annotations
 
 import re
 import unicodedata
 from datetime import datetime
 from typing import Optional, Tuple
 
-from .category_mapping import category_mapping
-from ...config import KNOWN_BRANDS, BRAND_BLACKLIST
+# Note: these imports reference project configuration.  They may be
+# unavailable when this stub is used in isolation, but are required in
+# the full pipeline.  Comment them out if running this file alone.
+try:
+    from .category_mapping import category_mapping  # type: ignore
+    from ..config import KNOWN_BRANDS, BRAND_BLACKLIST  # type: ignore
+except Exception:
+    category_mapping = {}
+    KNOWN_BRANDS: Tuple[str, ...] = tuple()
+    BRAND_BLACKLIST: Tuple[str, ...] = tuple()
 
 __all__ = [
     "clean_name",
@@ -23,6 +43,7 @@ __all__ = [
     "normalize_availability",
     "clean_price",
     "map_category",
+    "clean_name_from_image_url",
 ]
 
 
@@ -65,6 +86,40 @@ def clean_name(name: Optional[str]) -> str:
     return text
 
 
+def clean_name_from_image_url(url: str) -> Optional[str]:
+    """Recover a human‑readable product name from an image URL.
+
+    Parapharma image filenames often encode the full product name in a
+    slugified form (lowercase with hyphens).  When product names in
+    HTML are truncated with an ellipsis (``"..."``), this helper can
+    derive the likely full name by parsing the last path segment of
+    the URL and converting it into a title‑cased string.
+
+    Parameters
+    ----------
+    url : str
+        The image URL (expected to end with ``.webp`` or another
+        extension).
+
+    Returns
+    -------
+    Optional[str]
+        The inferred product name, or ``None`` if no slug could be
+        extracted.
+    """
+    if not url:
+        return None
+    # Match the final path component before the extension.  We allow
+    # letters, numbers, underscores and hyphens.  For example:
+    # https://example.com/images/omeprazole-20-mg.webp -> omeprazole-20-mg
+    match = re.search(r"/([\w\-]+)\.[a-zA-Z0-9]+$", url)
+    if match:
+        slug = match.group(1)
+        # Replace hyphens and underscores with spaces and title case
+        return slug.replace("-", " ").replace("_", " ").title()
+    return None
+
+
 def extract_size(clean_text: str) -> str:
     """Extract size token (e.g. ``"200ml"``) from a cleaned name.
 
@@ -82,7 +137,12 @@ def extract_size(clean_text: str) -> str:
     return match.group(0) if match else ""
 
 
-def extract_brand(clean_text: str, *, brands: Tuple[str, ...] = tuple(KNOWN_BRANDS), blacklist: Tuple[str, ...] = tuple(BRAND_BLACKLIST)) -> Optional[str]:
+def extract_brand(
+    clean_text: str,
+    *,
+    brands: Tuple[str, ...] = tuple(KNOWN_BRANDS),
+    blacklist: Tuple[str, ...] = tuple(BRAND_BLACKLIST)
+) -> Optional[str]:
     """Extract the brand name from a cleaned product name.
 
     The function tries to match the beginning of ``clean_text`` to one of

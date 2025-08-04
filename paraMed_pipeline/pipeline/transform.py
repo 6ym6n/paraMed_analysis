@@ -6,7 +6,13 @@ multiple sources and normalise them into a unified schema suitable for
 matching.  It applies cleaning, brand extraction, size extraction,
 price/discount logic, availability normalisation and category mapping.
 
-The function can deduplicate entries based on site and cleaned name.
+In addition to the upstream behaviour, this version can recover
+truncated product names from the Parapharma scraper.  When the raw
+``name`` field ends with an ellipsis (``"..."``) the full name is
+derived from the ``image_url`` using
+``utils.cleaning.clean_name_from_image_url``.  This ensures that
+``clean_name`` values are consistent across scraped products and
+improves duplicate detection.
 """
 
 from __future__ import annotations
@@ -20,7 +26,9 @@ from .utils.cleaning import (
     extract_size,
     normalize_availability,
     map_category,
+    clean_name_from_image_url,
 )
+
 
 def _parse_datetime(value: Optional[str]) -> datetime:
     """Parse an ISO datetime string into a datetime.  Fallback to now."""
@@ -63,8 +71,18 @@ def merge_and_clean(
     seen_keys: Set[Tuple[str, str]] = set()
 
     def process(doc: Dict) -> Optional[Dict]:
-        site: str = doc.get("site", "").strip().lower()
-        name_raw: str = doc.get("name", "")
+        site: str = (doc.get("site") or "").strip().lower()
+        name_raw: str = doc.get("name") or ""
+        # Recover the full name from the image URL if the visible name is truncated.
+        # Parapharma product listings sometimes include an ellipsis ("...")
+        # when the name overflows.  In these cases the image filename often
+        # encodes the full product name.  We check for this pattern and
+        # replace the raw name accordingly.
+        if site == "parapharma.ma" and name_raw.endswith("..."):
+            img_url = doc.get("image_url") or ""
+            recovered = clean_name_from_image_url(img_url)
+            if recovered and recovered.lower() not in name_raw.lower():
+                name_raw = recovered
         clean = clean_name(name_raw)
         if deduplicate:
             key = (site, clean)
