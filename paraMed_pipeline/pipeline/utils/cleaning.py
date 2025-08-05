@@ -30,7 +30,7 @@ from typing import Optional, Tuple
 # the full pipeline.  Comment them out if running this file alone.
 try:
     from .category_mapping import category_mapping  # type: ignore
-    from ..config import KNOWN_BRANDS, BRAND_BLACKLIST  # type: ignore
+    from ...config import KNOWN_BRANDS, BRAND_BLACKLIST  # type: ignore
 except Exception:
     category_mapping = {}
     KNOWN_BRANDS: Tuple[str, ...] = tuple()
