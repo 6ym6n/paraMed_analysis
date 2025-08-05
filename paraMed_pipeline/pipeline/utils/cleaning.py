@@ -254,24 +254,31 @@ def clean_price(value: Optional[str]) -> Optional[float]:
 def map_category(cat: Optional[str]) -> str:
     """Map a raw category string to a canonical category.
 
-    Uses :data:`category_mapping` defined in :mod:`.category_mapping`.
-    Performs accent stripping and lower‑casing before searching for
-    substrings.  If no mapping matches, returns ``"Autres"``.
+    This helper normalises the input category using :func:`clean_name` and
+    searches for any mapping key within it.  To ensure consistent
+    matching, the mapping keys themselves are also normalised via
+    :func:`clean_name`.  If no mapping matches, the category ``"Autres"``
+    is returned.
 
     Parameters
     ----------
     cat : str, optional
-        Raw category string.
+        Raw category string.  Accent marks, hyphens and case are
+        ignored during matching.
 
     Returns
     -------
     str
-        Canonical category.
+        The canonical category as defined in ``category_mapping`` or
+        ``"Autres"`` if no match is found.
     """
     if not cat:
         return "Autres"
-    text = clean_name(cat)  # reuse clean_name to normalise
+    # Normalise the input category (lowercase, accentless, no symbols)
+    text = clean_name(cat)
     for key, mapped in category_mapping.items():
-        if key in text:
+        # Normalise mapping keys to handle accents and case consistently
+        key_norm = clean_name(key)
+        if key_norm and key_norm in text:
             return mapped
     return "Autres"
