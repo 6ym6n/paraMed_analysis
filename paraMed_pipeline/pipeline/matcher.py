@@ -85,13 +85,24 @@ def match_products(
         emb_a = model.encode([query_str], normalize_embeddings=True)
         emb_b = model.encode(cand_strs, normalize_embeddings=True)
         sim_scores = cosine_similarity(emb_a, emb_b)[0]
+        # Find the best match above the threshold.
+        # If a product from Parapharma has multiple candidate matches in Univers,
+        # only keep the match with the highest similarity.  Previously, the code
+        # appended all matches that met the threshold, which led to multiple
+        # matches per product.  We now track the best (highest) similarity and
+        # append only that match if it meets the threshold.
+        best_idx = None
+        best_score = -1.0
         for idx, score in enumerate(sim_scores):
-            if score >= similarity_threshold:
-                matches.append({
-                    "product_a": pa,
-                    "product_b": candidates[idx],
-                    "similarity": float(score),
-                })
+            if score >= similarity_threshold and score > best_score:
+                best_idx = idx
+                best_score = score
+        if best_idx is not None:
+            matches.append({
+                "product_a": pa,
+                "product_b": candidates[best_idx],
+                "similarity": float(best_score),
+            })
     return matches
 
 
